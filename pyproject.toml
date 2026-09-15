@@ -1,0 +1,15 @@
+[project]
+name = "deed-collector"
+version = "0.1.0"
+description = "Scrap real estate data and populate your tracker with it."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
+authors
+
+[project.scripts]
+deed-collector = "deed_collector:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
