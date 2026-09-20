@@ -1,14 +1,13 @@
-from deed_collector.scaper.otodom import OtodomScraper
-from deed_collector.scaper.scraper_factory import ScraperFactory
+from deed_collector.scraper import ScraperFactory
 
 
 def main() -> None:
     # TODO something better than argparse?
     url = "https://www.otodom.pl/pl/oferta/wykonczony-dom-ogrod-98m-przy-lesie-bez-prowizji-bezposrednio-ID4wx3M"
-    scraper = ScraperFactory.get_scraper(url)
-    property_listing = scraper.run()
+    with ScraperFactory.create(url) as scraper:
+        property_listing = scraper.run(url)
     print(property_listing)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

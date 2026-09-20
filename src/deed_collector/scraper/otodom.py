@@ -1,5 +1,7 @@
-from typing import Any
-from datetime import datetime
+"""Scraper for otodom.pl listings."""
+
+from __future__ import annotations
+
 import json
 from typing import Any
 
@@ -10,41 +12,48 @@ from deed_collector.real_estate.property_listing import (
     PropertyListing,
     Provider,
 )
-from deed_collector.scaper.base import BaseScraper
+from deed_collector.scraper.base import BaseScraper
+from deed_collector.scraper.exceptions import ParsingError
+from deed_collector.scraper.factory import ScraperFactory
 
 
+@ScraperFactory.register
 class OtodomScraper(BaseScraper):
+    """Parses Otodom listings from their Next.js hydration payload."""
+
+    SUPPORTED_DOMAINS = ("otodom.pl",)
+
     def _parse_raw(self, raw_payload: str) -> dict[str, Any]:
-        """Extracts the 'ad' data dictionary from Next.js hydration script."""
+        """Extract the ``ad`` dictionary from the Next.js hydration script."""
         tree = HTMLParser(raw_payload)
         next_data_node = tree.css_first("script#__NEXT_DATA__")
 
-        if not next_data_node:
-            raise ValueError("Could not find '__NEXT_DATA__' script tag in HTML.")
+        if next_data_node is None:
+            raise ParsingError("Could not find '__NEXT_DATA__' script tag in HTML.")
 
-        payload = json.loads(next_data_node.text())
+        try:
+            payload = json.loads(next_data_node.text())
+        except json.JSONDecodeError as exc:
+            raise ParsingError("'__NEXT_DATA__' did not contain valid JSON.") from exc
+
         page_props = payload.get("props", {}).get("pageProps", {})
-
         ad_data = page_props.get("ad")
+
         if not ad_data:
-            raise ValueError("Listing data ('ad') not found in '__NEXT_DATA__'.")
+            raise ParsingError("Listing data ('ad') not found in '__NEXT_DATA__'.")
 
         return ad_data
 
-    def _to_property_listing(self, data: dict[str, Any]) -> PropertyListing:
-        """Maps raw ad dictionary to the PropertyListing model."""
+    def _to_property_listing(self, data: dict[str, Any], url: str) -> PropertyListing:
+        """Map the raw ``ad`` dictionary onto the :class:`PropertyListing` model."""
         target: dict[str, Any] = data.get("target", {})
         attributes: dict[str, Any] = data.get("attributes", {})
 
         # address (combining street if available with reverse geocoded locality)
         location_data = data.get("location", {})
-        street_name = (
-            location_data.get("address", {}).get("street", {}).get("name")
-        )
+        street_name = location_data.get("address", {}).get("street", {}).get("name")
 
-        locations = (
-            location_data.get("reverseGeocoding", {}).get("locations", [])
-        )
+        locations = location_data.get("reverseGeocoding", {}).get("locations", [])
         locality_desc = locations[-1].get("fullName") if locations else ""
 
         if street_name and locality_desc:
@@ -83,7 +92,7 @@ class OtodomScraper(BaseScraper):
 
         return PropertyListing(
             provider=Provider.OTODOM,
-            url=self._url,
+            url=url,
             address=address,
             price=price,
             area=area,

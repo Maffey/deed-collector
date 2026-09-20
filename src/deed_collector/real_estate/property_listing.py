@@ -1,6 +1,4 @@
-import datetime
 from dataclasses import dataclass
-from functools import cached_property
 
 from deed_collector.real_estate.market import MarketType
 from deed_collector.real_estate.providers import Provider
@@ -18,7 +16,6 @@ class PropertyListing:
     year_of_construction: int | None
     market_type: MarketType
 
-
-    @cached_property
-    def price_per_square_meter(self):
+    @property
+    def price_per_square_meter(self) -> float:
         return self.price / self.area
