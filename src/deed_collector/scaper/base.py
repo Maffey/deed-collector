@@ -13,7 +13,7 @@ from deed_collector.real_estate.property_listing import PropertyListing
 class BaseScraper(ABC):
 
     def __init__(self):
-        self.client = httpx.Client(  # TODO use as conext manager
+        self._client = httpx.Client(  # TODO use as conext manager
             follow_redirects=True,
             http2=True,
             transport=httpx.HTTPTransport(retries=3),
@@ -22,8 +22,11 @@ class BaseScraper(ABC):
     def run(self, url: str) -> PropertyListing:
         # TODO logic for retrieving raw data here
         # TODO Retreive data from the website...
-        response = f"dummy {url}"
-        data = self._parse_raw(response)
+        with self._client:
+            response = self._client.get(url)
+            response.raise_for_status()
+
+        data = self._parse_raw(response.text)
         return self._to_property_listing(data)
 
 

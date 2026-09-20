@@ -5,8 +5,8 @@ description = "Scrap real estate data and populate your tracker with it."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "httpx>=0.28.1",
-    "selectolax>=0.4.11",
+    "httpx[http2]>=0.28.1",
+    "selectolax>=0.4.12",
 ]
 authors = [{name = "Maffey"}]
 
