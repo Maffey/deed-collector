@@ -1,4 +1,5 @@
 from deed_collector.scraper import ScraperFactory
+from deed_collector.sheet_clients.google_sheet import GoogleSheetClient
 
 
 def main() -> None:
@@ -7,6 +8,9 @@ def main() -> None:
     with ScraperFactory.create(url) as scraper:
         property_listing = scraper.run(url)
     print(property_listing)
+
+    # TODO Finish setup, provide IDs through cli, not the code
+    # GoogleSheetClient()
 
 
 if __name__ == "__main__":
