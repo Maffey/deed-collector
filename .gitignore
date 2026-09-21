@@ -219,3 +219,6 @@ __marimo__/
 
 # JetBrains
 .idea
+
+# API
+credentials.json
