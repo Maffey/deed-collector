@@ -50,6 +50,15 @@ def main(
             readable=True,
         ),
     ] = _DEFAULT_CREDENTIALS_PATH,
+    header_row: Annotated[
+        int,
+        typer.Option(
+            "--header-row",
+            "-r",
+            help="1-based row number that holds the sheet's column headers.",
+            min=1,
+        ),
+    ] = 1,
 ) -> None:
 
     # TODO restore later
@@ -72,6 +81,7 @@ def main(
         spreadsheet_id=spreadsheet_id,
         worksheet_name=sheet_name,
         credentials_path=credentials_path,
+        header_row=header_row,
     )
 
     sheet_client.append_listing(property_listing)
