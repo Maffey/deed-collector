@@ -1,6 +1,8 @@
 from pathlib import Path
+from typing import Annotated
 
 import typer
+from loguru import logger
 
 from deed_collector.scraper import ScraperFactory
 from deed_collector.sheet_clients.common import DEFAULT_SHEET_NAME
@@ -13,20 +15,51 @@ _DEFAULT_CREDENTIALS_PATH = (
 
 
 def main(
-    url: str,
-    spreadsheet_id: str,
-    worksheet_name: str = DEFAULT_SHEET_NAME,
-    credentials_path: Path = _DEFAULT_CREDENTIALS_PATH,
+    url: Annotated[
+        str,
+        typer.Argument(
+            help="URL of the property listing to scrape."
+        ),
+    ],
+    spreadsheet_id: Annotated[
+        str,
+        typer.Argument(
+            help="The ID of the Google Spreadsheet (found in the sheet URL: /spreadsheets/d/<ID>/edit)."
+        ),
+    ],
+    sheet_name: Annotated[
+        str,
+        typer.Option(
+            "--sheet-name",
+            "-w",
+            help="The name of the sheet tab within the spreadsheet.",
+        ),
+    ] = DEFAULT_SHEET_NAME,
+    credentials_path: Annotated[
+        Path,
+        typer.Option(
+            "--credentials-path",
+            "-c",
+            help="Path to the Google Service Account credentials JSON file.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+        ),
+    ] = _DEFAULT_CREDENTIALS_PATH,
 ) -> None:
     with ScraperFactory.create(url) as scraper:
         property_listing = scraper.run(url)
-    print(property_listing)
+
+    logger.debug(property_listing)
 
     sheet_client = GoogleSheetClient(
         spreadsheet_id=spreadsheet_id,
-        worksheet_name=worksheet_name,
+        worksheet_name=sheet_name,
         credentials_path=credentials_path,
     )
+
+    sheet_client.append_listing(property_listing)
 
 
 if __name__ == "__main__":
