@@ -8,6 +8,7 @@ dependencies = [
     "gspread>=6.2.1",
     "httpx[http2]>=0.28.1",
     "selectolax>=0.4.12",
+    "typer>=0.27.2",
 ]
 authors = [{name = "Maffey"}]
 

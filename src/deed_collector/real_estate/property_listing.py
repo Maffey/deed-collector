@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 from deed_collector.real_estate.market import MarketType
 from deed_collector.real_estate.providers import Provider
