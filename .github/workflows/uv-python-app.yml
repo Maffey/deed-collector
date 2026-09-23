@@ -1,0 +1,35 @@
+name: Python application
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv and Python
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        python-version: "3.14"
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Lint with ruff
+      run: uv run ruff check --output-format=github .
+      
+    - name: Format with ruff
+      run: uv run ruff format --check .
+
+    - name: Test with pytest
+      run: uv run pytest
