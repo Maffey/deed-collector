@@ -15,6 +15,8 @@ from deed_collector.sheet_clients.exceptions import (
 
 # TODO future work - instead of static mapping, a yaml/toml-based schema that the user can configure.
 # TODO https://aistudio.google.com/prompts/1axr-crrK_3AmeyFyYkU7RtqARhWMUlO_
+# TODO if no config, interactive creation of it through library like questionary or rich
+# TODO think about location of this config, and also about credentials.json
 _COLUMN_FIELDS = {
     "portal": "provider",
     "link do ogłoszenia": "url",

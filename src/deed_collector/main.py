@@ -68,7 +68,7 @@ def main(
     property_listing = PropertyListing(
     provider=Provider.OTODOM,
     url="https://www.example.com/some-url",
-    address="ul. Nieistniejaca 27/3, Wroclaw",
+    address="ul. Nieistniejaca 27/3, Zbignieszów",
     price=1100000.0,
     area=101.0,
     number_of_rooms=5,
