@@ -7,6 +7,11 @@ from gspread.utils import ValueInputOption, rowcol_to_a1
 
 from deed_collector.real_estate.property_listing import PropertyListing
 from deed_collector.sheet_clients.base import BaseSheetClient
+from deed_collector.sheet_clients.exceptions import (
+    EmptyWorksheetError,
+    InvalidHeaderError,
+    UnknownColumnsError,
+)
 
 # TODO future work - instead of static mapping, a yaml/toml-based schema taht the user can configure.
 _COLUMN_FIELDS = {
@@ -31,8 +36,7 @@ class GoogleSheetClient(BaseSheetClient):
         header_row: int = 1,
     ):
         if header_row < 1:
-            # TODO custom errors to be used
-            raise ValueError(f"header_row must be >= 1, got {header_row}.")
+            raise InvalidHeaderError(f"header_row must be >= 1, got {header_row}.")
 
         self.header_row = header_row
         self.client = gspread.service_account(filename=credentials_path)
@@ -46,13 +50,13 @@ class GoogleSheetClient(BaseSheetClient):
         end = rowcol_to_a1(self.sheet.row_count, self.sheet.col_count)
         rows = self.sheet.get(f"{start}:{end}")
         if not rows:
-            raise ValueError(
+            raise EmptyWorksheetError(
                 f"The worksheet has no data from header row {self.header_row} down."
             )
 
         headers = rows[0]
         if not any(_normalize_header(header) in _COLUMN_FIELDS for header in headers):
-            raise ValueError(
+            raise UnknownColumnsError(
                 f"No known columns found in row {self.header_row} (the header row). "
                 f"Expected at least one of {sorted(_COLUMN_FIELDS)}."
             )
@@ -69,7 +73,6 @@ class GoogleSheetClient(BaseSheetClient):
 def _normalize_header(header: str) -> str:
     # NFC makes composed/decomposed Polish letters compare equal, and split()
     # collapses runs of whitespace (including non-breaking spaces from Sheets).
-    # TODO is it really needed?
     return " ".join(unicodedata.normalize("NFC", header).split()).casefold()
 
 
@@ -82,7 +85,6 @@ def build_sheet_row(
     row lines up with the sheet's actual schema.
     """
     row: list[str | float | int] = []
-    # TODO feels cleanable
     for header in headers:
         field_name = _COLUMN_FIELDS.get(_normalize_header(header))
         if field_name is None:
