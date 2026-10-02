@@ -1,0 +1,25 @@
+# deed-collector worksheet column mapping (example).
+#
+# Copy this file to `config.toml` and edit the values so they match the
+# headers of your spreadsheet, e.g.:
+#
+#     cp config.example.toml config.toml
+#
+# Each key is a field scraped from a listing; each value is the header of the
+# worksheet column it should be written to. Leave a value as "" (or delete the
+# line) to skip exporting that field. Matching ignores case and surrounding
+# whitespace.
+#
+# Running the CLI without a `config.toml` prompts you to build one
+# interactively; `deed-collector --setup ...` re-runs that wizard.
+
+[worksheet_mapping]
+provider = "portal"
+url = "link do ogłoszenia"
+address = "adres (do mapy)"
+price = "cena (zł)"
+area = "metraż (m²)"
+price_per_square_meter = "cena/m² (zł)"
+number_of_rooms = "pokoje"
+market_type = "rynek"
+year_of_construction = "rok budowy"

@@ -222,3 +222,6 @@ __marimo__/
 
 # API
 credentials.json
+
+# Local user configuration (see config.example.toml)
+config.toml

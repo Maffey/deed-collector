@@ -22,3 +22,23 @@ class EmptyWorksheetError(SheetClientError):
 
 class UnknownColumnsError(SheetClientError):
     """Raised when the header row contains none of the known columns."""
+
+
+class ColumnMappingError(SheetClientError):
+    """Base exception for worksheet column mapping configuration problems."""
+
+
+class ConfigFileError(ColumnMappingError):
+    """Raised when the column mapping config file cannot be read or parsed."""
+
+
+class UnknownMappingFieldError(ColumnMappingError):
+    """Raised when the config maps a field that PropertyListing does not expose."""
+
+
+class InvalidColumnMappingError(ColumnMappingError):
+    """Raised when a mapping value is invalid or a column is mapped twice."""
+
+
+class SetupCancelledError(SheetClientError):
+    """Raised when the interactive mapping setup is aborted by the user."""
