@@ -14,7 +14,7 @@ dependencies = [
 authors = [{name = "Maffey"}]
 
 [project.scripts]
-deed-collector = "deed_collector:main"
+deed-collector = "deed_collector.main:cli"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
