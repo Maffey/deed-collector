@@ -6,7 +6,6 @@ from deed_collector.real_estate.providers import Provider
 
 @dataclass(frozen=True, slots=True)
 class PropertyListing:
-    # TODO pydantic? would allow some nice validation, for now let's keep it as-is
     provider: Provider
     url: str
     address: str
@@ -15,6 +14,7 @@ class PropertyListing:
     number_of_rooms: int
     year_of_construction: int | None
     market_type: MarketType
+    # TODO automatic added date, with the todays' date.
 
     @property
     def price_per_square_meter(self) -> float:

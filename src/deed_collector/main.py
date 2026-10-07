@@ -31,6 +31,7 @@ def main(
         str,
         typer.Argument(help="URL of the property listing to scrape."),
     ],
+        # TODO other args should also be place-able into config file.
     spreadsheet_id: Annotated[
         str,
         typer.Argument(
@@ -127,6 +128,7 @@ def main(
             raise typer.Exit(code=1) from exc
 
     sheet_client.append_listing(property_listing)
+    logger.info("Adding row to the sheet with the property listing has completed successfully.")
 
 
 def cli() -> None:
