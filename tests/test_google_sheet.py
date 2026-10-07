@@ -44,13 +44,20 @@ def test_build_sheet_row_follows_header_order(listing, lookup):
 def test_build_sheet_row_blanks_unknown_columns(listing, lookup):
     headers = ["portal", "Notatki", "cena (zł)"]
 
-    assert build_sheet_row(headers, listing, lookup) == [Provider.OTODOM.value, "", 500000.0]
+    assert build_sheet_row(headers, listing, lookup) == [
+        Provider.OTODOM.value,
+        "",
+        500000.0,
+    ]
 
 
 def test_build_sheet_row_matches_headers_case_insensitively(listing, lookup):
     headers = ["  PORTAL  ", "Cena (ZŁ)"]
 
-    assert build_sheet_row(headers, listing, lookup) == [Provider.OTODOM.value, 500000.0]
+    assert build_sheet_row(headers, listing, lookup) == [
+        Provider.OTODOM.value,
+        500000.0,
+    ]
 
 
 def test_build_sheet_row_supports_computed_property(listing, lookup):

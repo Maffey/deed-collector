@@ -20,22 +20,23 @@ from deed_collector.sheet_clients.exceptions import (
 )
 
 
-def write_config(tmp_path: Path, body: str) -> Path:
+def write_config(tmp_path: Path, config_body: str) -> Path:
     path = tmp_path / "config.toml"
-    path.write_text(body, encoding="utf-8")
+    path.write_text(config_body, encoding="utf-8")
     return path
 
 
-def test_normalize_header_folds_case_and_collapses_whitespace():
-    assert normalize_header("  Cena (ZŁ)  ") == "cena (zł)"
-    assert normalize_header("cena\u00a0(zł)") == "cena (zł)"
-
-
-def test_normalize_header_treats_composed_and_decomposed_letters_equally():
-    composed = "adres \u0141\u00f3d\u017a"  # ó with acute, ź with acute
-    decomposed = "adres Ło\u0301dz\u0301"
-
-    assert normalize_header(composed) == normalize_header(decomposed)
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        ("  Cena (ZŁ)  ", "cena (zł)"),
+        ("cena\u00a0(zł)", "cena (zł)"),
+        ("adres \u0141\u00f3d\u017a", "adres łódź"),
+        ("adres Ło\u0301dz\u0301", "adres łódź"),
+    ],
+)
+def test_normalize_header(header, expected):
+    assert normalize_header(header) == expected
 
 
 def test_load_missing_file_returns_defaults(tmp_path):
@@ -44,71 +45,40 @@ def test_load_missing_file_returns_defaults(tmp_path):
     )
 
 
-def test_load_partial_config_layers_over_defaults(tmp_path):
-    path = write_config(
-        tmp_path,
-        f'[{CONFIG_SECTION}]\nprice = "cena"\n',
-    )
+@pytest.mark.parametrize(
+    ("config_body", "expected_overrides"),
+    [
+        ('price = "cena"', {"price": "cena"}),
+        ('year_of_construction = ""', {"year_of_construction": ""}),
+        ('price = "  cena (zł)  "', {"price": "cena (zł)"}),
+    ],
+)
+def test_load_applies_user_values_over_defaults(tmp_path, config_body, expected_overrides):
+    path = write_config(tmp_path, f"[{CONFIG_SECTION}]\n{config_body}\n")
 
     mapping = load_worksheet_mapping(path)
 
-    assert mapping["price"] == "cena"
-    assert mapping["url"] == DEFAULT_WORKSHEET_MAPPING["url"]
+    assert mapping == {**DEFAULT_WORKSHEET_MAPPING, **expected_overrides}
 
 
-def test_load_empty_value_disables_field(tmp_path):
-    path = write_config(
-        tmp_path,
-        f'[{CONFIG_SECTION}]\nyear_of_construction = ""\n',
-    )
+@pytest.mark.parametrize(
+    ("config_body", "exception", "match"),
+    [
+        (f'[{CONFIG_SECTION}]\ntypo = "x"', UnknownMappingFieldError, "typo"),
+        (f"[{CONFIG_SECTION}]\nprice = 123", InvalidColumnMappingError, "price"),
+        (
+            f'[{CONFIG_SECTION}]\nprice = "wartosc"\narea = "WARTOSC"',
+            InvalidColumnMappingError,
+            "every exported field",
+        ),
+        (f"[{CONFIG_SECTION}\nprice = 'x'", ConfigFileError, None),
+        (f'{CONFIG_SECTION} = "nope"', ConfigFileError, CONFIG_SECTION),
+    ],
+)
+def test_load_rejects_invalid_config(tmp_path, config_body, exception, match):
+    path = write_config(tmp_path, config_body)
 
-    assert load_worksheet_mapping(path)["year_of_construction"] == ""
-
-
-def test_load_strips_surrounding_whitespace(tmp_path):
-    path = write_config(
-        tmp_path,
-        f'[{CONFIG_SECTION}]\nprice = "  cena (zł)  "\n',
-    )
-
-    assert load_worksheet_mapping(path)["price"] == "cena (zł)"
-
-
-def test_load_unknown_field_raises(tmp_path):
-    path = write_config(tmp_path, f'[{CONFIG_SECTION}]\ntypo = "x"\n')
-
-    with pytest.raises(UnknownMappingFieldError, match="typo"):
-        load_worksheet_mapping(path)
-
-
-def test_load_non_string_column_raises(tmp_path):
-    path = write_config(tmp_path, f"[{CONFIG_SECTION}]\nprice = 123\n")
-
-    with pytest.raises(InvalidColumnMappingError, match="price"):
-        load_worksheet_mapping(path)
-
-
-def test_load_duplicate_columns_raise(tmp_path):
-    path = write_config(
-        tmp_path,
-        f'[{CONFIG_SECTION}]\nprice = "wartosc"\narea = "WARTOSC"\n',
-    )
-
-    with pytest.raises(InvalidColumnMappingError, match="every exported field"):
-        load_worksheet_mapping(path)
-
-
-def test_load_malformed_toml_raises_config_file_error(tmp_path):
-    path = write_config(tmp_path, f"[{CONFIG_SECTION}\nprice = 'x'\n")
-
-    with pytest.raises(ConfigFileError):
-        load_worksheet_mapping(path)
-
-
-def test_load_non_table_section_raises(tmp_path):
-    path = write_config(tmp_path, f'{CONFIG_SECTION} = "nope"\n')
-
-    with pytest.raises(ConfigFileError, match=CONFIG_SECTION):
+    with pytest.raises(exception, match=match):
         load_worksheet_mapping(path)
 
 
