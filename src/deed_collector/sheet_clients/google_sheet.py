@@ -1,5 +1,4 @@
-import unicodedata
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import gspread
@@ -7,27 +6,16 @@ from gspread.utils import ValueInputOption, rowcol_to_a1
 
 from deed_collector.real_estate.property_listing import PropertyListing
 from deed_collector.sheet_clients.base import BaseSheetClient
+from deed_collector.sheet_clients.config import (
+    DEFAULT_WORKSHEET_MAPPING,
+    header_to_field,
+    normalize_header,
+)
 from deed_collector.sheet_clients.exceptions import (
     EmptyWorksheetError,
     InvalidHeaderError,
     UnknownColumnsError,
 )
-
-# TODO future work - instead of static mapping, a yaml/toml-based schema that the user can configure.
-# TODO https://aistudio.google.com/prompts/1axr-crrK_3AmeyFyYkU7RtqARhWMUlO_
-# TODO if no config, interactive creation of it through library like questionary or rich
-# TODO think about location of this config, and also about credentials.json
-_COLUMN_FIELDS = {
-    "portal": "provider",
-    "link do ogłoszenia": "url",
-    "adres (do mapy)": "address",
-    "cena (zł)": "price",
-    "metraż (m²)": "area",
-    "cena/m² (zł)": "price_per_square_meter",
-    "pokoje": "number_of_rooms",
-    "rynek": "market_type",
-    "rok budowy": "year_of_construction",
-}
 
 
 class GoogleSheetClient(BaseSheetClient):
@@ -37,13 +25,26 @@ class GoogleSheetClient(BaseSheetClient):
         worksheet_name: str,
         credentials_path: Path,
         header_row: int = 1,
+        column_mapping: Mapping[str, str] | None = None,
     ):
         if header_row < 1:
             raise InvalidHeaderError(f"header_row must be >= 1, got {header_row}.")
 
         self.header_row = header_row
+        self.column_mapping = (
+            dict(column_mapping)
+            if column_mapping is not None
+            else dict(DEFAULT_WORKSHEET_MAPPING)
+        )
         self.client = gspread.service_account(filename=credentials_path)
         self.sheet = self.client.open_by_key(spreadsheet_id).worksheet(worksheet_name)
+
+    def get_headers(self) -> list[str]:
+        """Return the header row as text, or ``[]`` when the row is empty."""
+        start = rowcol_to_a1(self.header_row, 1)
+        end = rowcol_to_a1(self.header_row, self.sheet.col_count)
+        rows = self.sheet.get(f"{start}:{end}")
+        return list(rows[0]) if rows else []
 
     def append_listing(self, listing: PropertyListing) -> None:
         """Append a single listing row, matching the sheet's header layout."""
@@ -58,13 +59,17 @@ class GoogleSheetClient(BaseSheetClient):
             )
 
         headers = rows[0]
-        if not any(_normalize_header(header) in _COLUMN_FIELDS for header in headers):
+        lookup = header_to_field(self.column_mapping)
+        if not any(normalize_header(header) in lookup for header in headers):
+            configured = sorted(
+                column for column in self.column_mapping.values() if column.strip()
+            )
             raise UnknownColumnsError(
                 f"No known columns found in row {self.header_row} (the header row). "
-                f"Expected at least one of {sorted(_COLUMN_FIELDS)}."
+                f"Expected at least one of the configured columns: {configured}."
             )
 
-        row = build_sheet_row(headers, listing)
+        row = build_sheet_row(headers, listing, lookup)
         target_row = first_empty_row_index(rows, start_row=self.header_row)
         self.sheet.update(
             [row],
@@ -73,23 +78,14 @@ class GoogleSheetClient(BaseSheetClient):
         )
 
 
-def _normalize_header(header: str) -> str:
-    # NFC makes composed/decomposed Polish letters compare equal, and split()
-    # collapses runs of whitespace (including non-breaking spaces from Sheets).
-    return " ".join(unicodedata.normalize("NFC", header).split()).casefold()
-
-
 def build_sheet_row(
-    headers: Sequence[str], listing: PropertyListing
+    headers: Sequence[str],
+    listing: PropertyListing,
+    lookup: dict[str, str],
 ) -> list[str | float | int]:
-    """Build a row that follows the column order defined by ``headers``.
-
-    Cells whose header has no corresponding listing field are left blank so the
-    row lines up with the sheet's actual schema.
-    """
     row: list[str | float | int] = []
     for header in headers:
-        field_name = _COLUMN_FIELDS.get(_normalize_header(header))
+        field_name = lookup.get(normalize_header(header))
         if field_name is None:
             row.append("")
             continue
