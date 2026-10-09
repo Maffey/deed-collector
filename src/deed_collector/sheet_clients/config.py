@@ -243,17 +243,16 @@ def load_sheet_settings(
 
 def save_config(
     config_path: Path | str,
+    *,
+    settings: SheetSettings,
     mapping: Mapping[str, str],
-    settings: SheetSettings | None = None,
 ) -> None:
-    """Write ``settings`` and ``mapping`` to ``config_path`` as commented TOML.
+    """Validate ``mapping`` and write ``settings`` + ``mapping`` as TOML.
 
-    When ``settings`` is ``None``, any settings already in the file are
-    preserved so that re-running the mapping wizard does not wipe them.
+    This writer does no merging: callers own the values, including any existing
+    settings they want to carry over.
     """
     validate_worksheet_mapping(mapping)
-    if settings is None:
-        settings = _existing_settings(config_path)
 
     lines = [
         "# deed-collector configuration.",
@@ -282,15 +281,6 @@ def save_config(
     Path(config_path).write_text("\n".join(lines), encoding="utf-8")
 
 
-def save_worksheet_mapping(
-    config_path: Path | str,
-    mapping: Mapping[str, str],
-) -> None:
-    # TODO useless intermediate interface. review the rest as well.
-    """Write ``mapping`` to ``config_path``, preserving existing settings."""
-    save_config(config_path, mapping)
-
-
 def header_to_field(mapping: Mapping[str, str]) -> dict[str, str]:
     """Build the normalized header -> internal field lookup used for writing."""
     return {
@@ -315,13 +305,6 @@ def _table(config: Mapping[str, object], name: str, path: Path) -> Mapping[str, 
     if not isinstance(table, dict):
         raise ConfigFileError(f"[{name}] in {path} must be a table.")
     return table
-
-
-def _existing_settings(config_path: Path | str) -> SheetSettings:
-    path = Path(config_path)
-    if not path.exists():
-        return SheetSettings()
-    return validate_sheet_settings(_table(_read_config(path), SETTINGS_SECTION, path))
 
 
 def _render_settings(settings: SheetSettings) -> list[str]:

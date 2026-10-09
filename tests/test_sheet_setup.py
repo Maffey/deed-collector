@@ -4,7 +4,10 @@ from deed_collector.sheet_clients import setup as sheet_setup
 from deed_collector.sheet_clients.config import (
     DEFAULT_WORKSHEET_MAPPING,
     MAPPABLE_FIELDS,
+    SheetSettings,
+    load_sheet_settings,
     load_worksheet_mapping,
+    save_config,
 )
 from deed_collector.sheet_clients.exceptions import SetupCancelledError
 
@@ -31,6 +34,23 @@ def test_run_setup_wizard_writes_selected_mapping(tmp_path, monkeypatch):
     assert mapping["url"] == ""
     assert mapping["address"] == "adres"
     assert mapping["number_of_rooms"] == "pokoje"
+
+
+def test_run_setup_wizard_preserves_existing_settings(tmp_path, monkeypatch):
+    path = tmp_path / "config.toml"
+    settings = SheetSettings(
+        spreadsheet_id="abc123", sheet_name="Tracker", header_row=3
+    )
+    save_config(path, settings=settings, mapping=DEFAULT_WORKSHEET_MAPPING)
+
+    monkeypatch.setattr(
+        sheet_setup.typer, "prompt", lambda message, **kwargs: kwargs["default"]
+    )
+    _silence_output(monkeypatch)
+
+    sheet_setup.run_setup_wizard(list(DEFAULT_WORKSHEET_MAPPING.values()), path)
+
+    assert load_sheet_settings(path) == settings
 
 
 def test_run_setup_wizard_prompts_every_field_with_default_preselected(

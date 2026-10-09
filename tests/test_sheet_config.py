@@ -14,7 +14,6 @@ from deed_collector.sheet_clients.config import (
     load_worksheet_mapping,
     normalize_header,
     save_config,
-    save_worksheet_mapping,
     validate_worksheet_mapping,
 )
 from deed_collector.sheet_clients.exceptions import (
@@ -93,7 +92,7 @@ def test_save_then_load_round_trips_unicode(tmp_path):
     path = tmp_path / "config.toml"
     mapping = {**DEFAULT_WORKSHEET_MAPPING, "price": 'cena "zł" \\ netto'}
 
-    save_worksheet_mapping(path, mapping)
+    save_config(path, settings=SheetSettings(), mapping=mapping)
 
     assert load_worksheet_mapping(path)["price"] == 'cena "zł" \\ netto'
 
@@ -102,7 +101,7 @@ def test_save_writes_empty_string_for_skipped_field(tmp_path):
     path = tmp_path / "config.toml"
     mapping = {**DEFAULT_WORKSHEET_MAPPING, "area": ""}
 
-    save_worksheet_mapping(path, mapping)
+    save_config(path, settings=SheetSettings(), mapping=mapping)
 
     assert 'area = ""' in path.read_text(encoding="utf-8")
 
@@ -183,20 +182,7 @@ def test_save_config_round_trips_settings(tmp_path):
         spreadsheet_id="abc123", sheet_name="Tracker", header_row=3
     )
 
-    save_config(path, DEFAULT_WORKSHEET_MAPPING, settings)
+    save_config(path, settings=settings, mapping=DEFAULT_WORKSHEET_MAPPING)
 
     assert load_sheet_settings(path) == settings
     assert load_worksheet_mapping(path) == DEFAULT_WORKSHEET_MAPPING
-
-
-def test_save_worksheet_mapping_preserves_existing_settings(tmp_path):
-    path = tmp_path / "config.toml"
-    settings = SheetSettings(
-        spreadsheet_id="abc123", sheet_name="Tracker", header_row=3
-    )
-    save_config(path, DEFAULT_WORKSHEET_MAPPING, settings)
-
-    save_worksheet_mapping(path, {**DEFAULT_WORKSHEET_MAPPING, "price": "cena"})
-
-    assert load_sheet_settings(path) == settings
-    assert load_worksheet_mapping(path)["price"] == "cena"

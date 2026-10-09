@@ -13,8 +13,9 @@ import typer
 from deed_collector.sheet_clients.config import (
     DEFAULT_WORKSHEET_MAPPING,
     MAPPABLE_FIELDS,
+    load_sheet_settings,
     normalize_header,
-    save_worksheet_mapping,
+    save_config,
 )
 from deed_collector.sheet_clients.exceptions import SetupCancelledError
 
@@ -49,7 +50,8 @@ def run_setup_wizard(
             "Interactive setup was cancelled; the config file was not written."
         ) from exc
 
-    save_worksheet_mapping(config_path, mapping)
+    # Keep any target settings already configured; the wizard only owns mapping.
+    save_config(config_path, settings=load_sheet_settings(config_path), mapping=mapping)
     typer.echo(f"Saved worksheet mapping to {config_path}.")
     return mapping
 
