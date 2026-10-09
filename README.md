@@ -93,7 +93,60 @@ Matching is case-insensitive and ignores surrounding whitespace.
 
 ## Usage
 
-< TODO To be added >
+With `credentials.json` in the project folder and a `config.toml` describing your
+worksheet (see [Configuration](#configuration)), scrape a listing by passing its
+URL:
+
+```bash
+uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing"
+```
+
+The listing is fetched, parsed, and appended as a new row to the configured
+spreadsheet. URL and `spreadsheet_id` are positional arguments; `spreadsheet_id`
+is optional when it is set in `config.toml`:
+
+```bash
+uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" "1AbC..."
+```
+
+Currently only **Otodom** (`otodom.pl`) listings are supported. Passing a URL
+from an unrecognized host aborts with an error before anything is written.
+
+### Options
+
+| Option                      | Short | Description                                                                            |
+| --------------------------- | ----- | -------------------------------------------------------------------------------------- |
+| `--sheet-name <name>`       | `-w`  | Worksheet tab to write to. Overrides `[worksheet].sheet_name`.                         |
+| `--header-row <n>`          | `-r`  | 1-based row holding the column headers (`n >= 1`). Overrides `[worksheet].header_row`. |
+| `--config-path <file>`      | `-f`  | TOML config file to read. Defaults to `config.toml` in the current directory.          |
+| `--credentials-path <file>` | `-c`  | Service account JSON key. Defaults to `credentials.json` in the project folder.        |
+| `--setup`                   |       | Re-run the interactive column-mapping wizard, then continue with the scrape.           |
+| `--help`                    |       | Show the full help text and exit.                                                      |
+
+### Examples
+
+Write to a different tab whose headers live on row 2:
+
+```bash
+uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" -w "Flats" -r 2
+```
+
+Use a config file and credentials stored outside the project folder:
+
+```bash
+uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" \
+  -f ./my-config.toml -c ./secrets/service-account.json
+```
+
+Rebuild the column mapping after changing your worksheet headers:
+
+```bash
+uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" --setup
+```
+
+On a first run without a `config.toml`, and when running in an interactive
+terminal, the CLI walks you through building one automatically before writing the
+row.
 
 ## Development
 

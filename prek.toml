@@ -1,0 +1,15 @@
+# prek hooks for deed-collector (https://prek.j178.dev).
+#
+# Install the Git hook with `uv run prek install`, then check the whole
+# repository with `uv run prek run --all-files`.
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.17.0"
+hooks = [
+  # Lint and auto-fix.
+  { id = "ruff-check", args = ["--fix"], types_or = ["python", "pyi"] },
+
+  # Format.
+  { id = "ruff-format", types_or = ["python", "pyi", "markdown"] },
+]
