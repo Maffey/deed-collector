@@ -225,3 +225,4 @@ credentials.json
 
 # Local user configuration (see config.example.toml)
 config.toml
+dev_config.toml
