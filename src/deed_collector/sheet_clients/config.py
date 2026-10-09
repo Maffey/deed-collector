@@ -1,28 +1,50 @@
-"""User-configurable mapping from listing fields to worksheet columns.
+"""User-configurable worksheet target and listing-to-column mapping.
 
-The mapping lives in a TOML file under the ``[worksheet_mapping]`` table and
-points *from* our internal field names *to* the header text the user has in
-their spreadsheet, for example:
+The target worksheet settings live in a TOML ``[worksheet]`` table (all keys
+optional), and the column mapping lives in a ``[worksheet_mapping]`` table::
+
+    [worksheet]
+    spreadsheet_id = "1Abc..."
+    sheet_name = "Sheet1"
+    header_row = 1
 
     [worksheet_mapping]
     price = "cena (zł)"
     area = "metraż (m²)"
+
+The ``spreadsheet_id`` setting has no built-in default: it must be supplied
+either here or as a CLI argument. Any CLI value takes precedence over the file.
 """
 
 import json
 import tomllib
 import unicodedata
 from collections.abc import Mapping
+from dataclasses import dataclass, replace
 from pathlib import Path
 
+from deed_collector.sheet_clients.common import DEFAULT_SHEET_NAME
 from deed_collector.sheet_clients.exceptions import (
     ConfigFileError,
     InvalidColumnMappingError,
+    InvalidSheetSettingsError,
     UnknownMappingFieldError,
 )
 
 CONFIG_SECTION = "worksheet_mapping"
+SETTINGS_SECTION = "worksheet"
 DEFAULT_CONFIG_FILE_NAME = "config.toml"
+
+DEFAULT_HEADER_ROW = 1
+
+SPREADSHEET_ID_KEY = "spreadsheet_id"
+SHEET_NAME_KEY = "sheet_name"
+HEADER_ROW_KEY = "header_row"
+SHEET_SETTING_KEYS: tuple[str, ...] = (
+    SPREADSHEET_ID_KEY,
+    SHEET_NAME_KEY,
+    HEADER_ROW_KEY,
+)
 
 # ``price_per_square_meter`` is a computed property on ``PropertyListing``
 # rather than a dataclass field, which is why this list is explicit.
@@ -50,6 +72,39 @@ DEFAULT_WORKSHEET_MAPPING: dict[str, str] = {
     "market_type": "rynek",
     "year_of_construction": "rok budowy",
 }
+
+
+@dataclass(frozen=True)
+class SheetSettings:
+    """Target worksheet settings, independent of the column mapping.
+
+    ``spreadsheet_id`` is ``None`` when it is not configured anywhere.
+    """
+
+    spreadsheet_id: str | None = None
+    sheet_name: str = DEFAULT_SHEET_NAME
+    header_row: int = DEFAULT_HEADER_ROW
+
+    def overridden_by(
+        self,
+        *,
+        spreadsheet_id: str | None = None,
+        sheet_name: str | None = None,
+        header_row: int | None = None,
+    ) -> SheetSettings:
+        """Layer explicitly provided CLI values on top of these settings.
+
+        ``None`` means "not provided on the command line", so the file value is
+        kept.
+        """
+        return replace(
+            self,
+            spreadsheet_id=(
+                spreadsheet_id if spreadsheet_id is not None else self.spreadsheet_id
+            ),
+            sheet_name=sheet_name if sheet_name is not None else self.sheet_name,
+            header_row=header_row if header_row is not None else self.header_row,
+        )
 
 
 def normalize_header(header: str) -> str:
@@ -105,58 +160,135 @@ def validate_worksheet_mapping(
     return validated
 
 
+def validate_sheet_settings(settings: Mapping[str, object]) -> SheetSettings:
+    """Validate a ``[worksheet]`` table and return clean settings.
+
+    Missing keys fall back to :class:`SheetSettings` defaults.
+
+    Raises:
+        InvalidSheetSettingsError: an unknown key is present, or a known key
+            has a value of the wrong type or range.
+    """
+    unknown = sorted(set(settings) - set(SHEET_SETTING_KEYS))
+    if unknown:
+        raise InvalidSheetSettingsError(
+            f"Unknown key(s) {', '.join(map(repr, unknown))} in [{SETTINGS_SECTION}]. "
+            f"Valid keys: {', '.join(SHEET_SETTING_KEYS)}."
+        )
+
+    spreadsheet_id = settings.get(SPREADSHEET_ID_KEY)
+    if spreadsheet_id is not None:
+        if not isinstance(spreadsheet_id, str) or not spreadsheet_id.strip():
+            raise InvalidSheetSettingsError(
+                f"'{SPREADSHEET_ID_KEY}' in [{SETTINGS_SECTION}] must be a "
+                "non-empty string."
+            )
+        spreadsheet_id = spreadsheet_id.strip()
+
+    sheet_name = settings.get(SHEET_NAME_KEY, DEFAULT_SHEET_NAME)
+    if not isinstance(sheet_name, str) or not sheet_name.strip():
+        raise InvalidSheetSettingsError(
+            f"'{SHEET_NAME_KEY}' in [{SETTINGS_SECTION}] must be a non-empty string."
+        )
+    sheet_name = sheet_name.strip()
+
+    header_row = settings.get(HEADER_ROW_KEY, DEFAULT_HEADER_ROW)
+    # ``bool`` is a subclass of ``int``, so reject it explicitly.
+    if (
+        isinstance(header_row, bool)
+        or not isinstance(header_row, int)
+        or header_row < 1
+    ):
+        raise InvalidSheetSettingsError(
+            f"'{HEADER_ROW_KEY}' in [{SETTINGS_SECTION}] must be an integer >= 1."
+        )
+
+    return SheetSettings(
+        spreadsheet_id=spreadsheet_id,
+        sheet_name=sheet_name,
+        header_row=header_row,
+    )
+
+
 def load_worksheet_mapping(
     config_path: Path | str = DEFAULT_CONFIG_FILE_NAME,
 ) -> dict[str, str]:
     """Load the worksheet mapping, falling back to defaults for missing keys.
 
-    A missing file yields :data:`DEFAULT_WORKSHEET_MAPPING` unchanged. When the
-    file exists, its ``[worksheet_mapping]`` values are layered on top of the
-    defaults, so users only have to spell out what differs.
+    Only the ``[worksheet_mapping]`` table is validated, so a broken mapping can
+    still be repaired interactively with ``--setup``.
     """
     path = Path(config_path)
     if not path.exists():
         return dict(DEFAULT_WORKSHEET_MAPPING)
 
-    try:
-        with path.open("rb") as config_file:
-            config = tomllib.load(config_file)
-    except tomllib.TOMLDecodeError as exc:
-        raise ConfigFileError(f"Could not parse {path}: {exc}") from exc
-    except OSError as exc:
-        raise ConfigFileError(f"Could not read {path}: {exc}") from exc
-
-    raw_mapping = config.get(CONFIG_SECTION, {})
-    if not isinstance(raw_mapping, dict):
-        raise ConfigFileError(
-            f'[{CONFIG_SECTION}] in {path} must be a table of field = "column" pairs.'
-        )
-
+    raw_mapping = _table(_read_config(path), CONFIG_SECTION, path)
     user_mapping = validate_worksheet_mapping(raw_mapping)
     return {**DEFAULT_WORKSHEET_MAPPING, **user_mapping}
 
 
-def save_worksheet_mapping(
+def load_sheet_settings(
+    config_path: Path | str = DEFAULT_CONFIG_FILE_NAME,
+) -> SheetSettings:
+    """Load the target worksheet settings, falling back to defaults.
+
+    Only the ``[worksheet]`` table is validated; the column mapping is ignored.
+    """
+    path = Path(config_path)
+    if not path.exists():
+        return SheetSettings()
+
+    return validate_sheet_settings(_table(_read_config(path), SETTINGS_SECTION, path))
+
+
+def save_config(
     config_path: Path | str,
     mapping: Mapping[str, str],
+    settings: SheetSettings | None = None,
 ) -> None:
-    """Write ``mapping`` to ``config_path`` as a commented TOML file."""
+    """Write ``settings`` and ``mapping`` to ``config_path`` as commented TOML.
+
+    When ``settings`` is ``None``, any settings already in the file are
+    preserved so that re-running the mapping wizard does not wipe them.
+    """
     validate_worksheet_mapping(mapping)
+    if settings is None:
+        settings = _existing_settings(config_path)
 
     lines = [
-        "# deed-collector worksheet column mapping.",
+        "# deed-collector configuration.",
         "#",
-        "# Each entry maps a scraped listing field to the header of the column",
-        '# it should be written to. Use "" to skip exporting a field.',
+        "# [worksheet] sets the target spreadsheet tab. Every key is optional;",
+        "# CLI values (spreadsheet id argument, --sheet-name, --header-row)",
+        "# override the values written here.",
+        "#",
+        "# [worksheet_mapping] maps each scraped listing field to the header of",
+        '# the column it should be written to. Use "" to skip exporting a field.',
         "",
-        f"[{CONFIG_SECTION}]",
     ]
+
+    settings_lines = _render_settings(settings)
+    if settings_lines:
+        lines.append(f"[{SETTINGS_SECTION}]")
+        lines.extend(settings_lines)
+        lines.append("")
+
+    lines.append(f"[{CONFIG_SECTION}]")
     lines.extend(
         f"{field} = {_toml_string(mapping.get(field, ''))}" for field in MAPPABLE_FIELDS
     )
     lines.append("")
 
     Path(config_path).write_text("\n".join(lines), encoding="utf-8")
+
+
+def save_worksheet_mapping(
+    config_path: Path | str,
+    mapping: Mapping[str, str],
+) -> None:
+    # TODO useless intermediate interface. review the rest as well.
+    """Write ``mapping`` to ``config_path``, preserving existing settings."""
+    save_config(config_path, mapping)
 
 
 def header_to_field(mapping: Mapping[str, str]) -> dict[str, str]:
@@ -166,6 +298,41 @@ def header_to_field(mapping: Mapping[str, str]) -> dict[str, str]:
         for field, column in mapping.items()
         if column.strip()
     }
+
+
+def _read_config(path: Path) -> dict:
+    try:
+        with path.open("rb") as config_file:
+            return tomllib.load(config_file)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigFileError(f"Could not parse {path}: {exc}") from exc
+    except OSError as exc:
+        raise ConfigFileError(f"Could not read {path}: {exc}") from exc
+
+
+def _table(config: Mapping[str, object], name: str, path: Path) -> Mapping[str, object]:
+    table = config.get(name, {})
+    if not isinstance(table, dict):
+        raise ConfigFileError(f"[{name}] in {path} must be a table.")
+    return table
+
+
+def _existing_settings(config_path: Path | str) -> SheetSettings:
+    path = Path(config_path)
+    if not path.exists():
+        return SheetSettings()
+    return validate_sheet_settings(_table(_read_config(path), SETTINGS_SECTION, path))
+
+
+def _render_settings(settings: SheetSettings) -> list[str]:
+    lines: list[str] = []
+    if settings.spreadsheet_id is not None:
+        lines.append(f"{SPREADSHEET_ID_KEY} = {_toml_string(settings.spreadsheet_id)}")
+    if settings.sheet_name != DEFAULT_SHEET_NAME:
+        lines.append(f"{SHEET_NAME_KEY} = {_toml_string(settings.sheet_name)}")
+    if settings.header_row != DEFAULT_HEADER_ROW:
+        lines.append(f"{HEADER_ROW_KEY} = {settings.header_row}")
+    return lines
 
 
 def _toml_string(value: str) -> str:
