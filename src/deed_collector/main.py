@@ -1,7 +1,9 @@
-import sys
-from pathlib import Path
 import random
-from typing import Annotated
+import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Annotated, NoReturn
 
 import typer
 from loguru import logger
@@ -27,6 +29,21 @@ _DEFAULT_CREDENTIALS_FILE_NAME = "credentials.json"
 _DEFAULT_CREDENTIALS_PATH = (
     Path(__file__).resolve().parents[2] / _DEFAULT_CREDENTIALS_FILE_NAME
 )
+
+
+def _exit_with_error(message: str, *, cause: Exception | None = None) -> NoReturn:
+    """Log ``message`` as an error and abort the CLI with exit code 1."""
+    logger.error(message)
+    raise typer.Exit(code=1) from cause
+
+
+@contextmanager
+def _exit_on_error(*errors: type[Exception]) -> Iterator[None]:
+    """Abort the CLI with exit code 1 if ``errors`` are raised in the block."""
+    try:
+        yield
+    except errors as exc:
+        _exit_with_error(str(exc), cause=exc)
 
 
 def main(
@@ -104,8 +121,8 @@ def main(
         provider=Provider.OTODOM,
         url="https://www.example.com/some-url",
         address="ul. Nieistniejaca 27/3, Zbignieszów",
-        price=random.uniform(price_base-price_diff, price_base+price_diff),
-        area=random.randint(area_base-area_diff, area_base+area_diff),
+        price=random.uniform(price_base - price_diff, price_base + price_diff),
+        area=random.randint(area_base - area_diff, area_base + area_diff),
         number_of_rooms=5,
         year_of_construction=2025,
         market_type=MarketType.PRIMARY,
@@ -113,11 +130,8 @@ def main(
     logger.debug(property_listing)
 
     # CLI values win, then the config file, then the built-in defaults.
-    try:
+    with _exit_on_error(SheetConfigError):
         settings = load_sheet_settings(config_path)
-    except SheetConfigError as exc:
-        logger.error(str(exc))
-        raise typer.Exit(code=1) from exc
 
     settings = settings.overridden_by(
         spreadsheet_id=spreadsheet_id,
@@ -125,11 +139,10 @@ def main(
         header_row=header_row,
     )
     if settings.spreadsheet_id is None:
-        logger.error(
+        _exit_with_error(
             "No spreadsheet id provided. Pass it as an argument or set "
             f"'spreadsheet_id' in the [{SETTINGS_SECTION}] table of {config_path}."
         )
-        raise typer.Exit(code=1)
 
     sheet_client = GoogleSheetClient(
         spreadsheet_id=settings.spreadsheet_id,
@@ -142,20 +155,13 @@ def main(
     # worksheet headers to our fields. Non-interactive sessions fall back to the
     # built-in defaults so scripts and CI keep working.
     if setup or (not config_path.exists() and sys.stdin.isatty()):
-        try:
+        with _exit_on_error(SetupCancelledError):
             sheet_client.column_mapping = run_setup_wizard(
                 sheet_client.get_headers(), config_path
             )
-        # TODO refactor below into block
-        except SetupCancelledError as exc:
-            logger.error(str(exc))
-            raise typer.Exit(code=1) from exc
     else:
-        try:
+        with _exit_on_error(ColumnMappingError):
             sheet_client.column_mapping = load_worksheet_mapping(config_path)
-        except ColumnMappingError as exc:
-            logger.error(str(exc))
-            raise typer.Exit(code=1) from exc
 
     sheet_client.append_listing(property_listing)
     logger.info(
