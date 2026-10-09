@@ -1,0 +1,36 @@
+# deed-collector configuration (example).
+#
+# Copy this file to `config.toml` and edit the values so they match your
+# spreadsheet, e.g.:
+#
+#     cp config.example.toml config.toml
+#
+# Running the CLI without a `config.toml` prompts you to build one
+# interactively; `deed-collector --setup ...` re-runs that wizard.
+
+# Target worksheet. Every key is optional, and CLI values override the file:
+#   * `spreadsheet_id` may instead be passed as the second positional argument
+#   * `sheet_name` may instead be passed with --sheet-name/-w
+#   * `header_row` may instead be passed with --header-row/-r
+#
+# `spreadsheet_id` has no default, so it must be set here or on the CLI.
+[worksheet]
+spreadsheet_id = "your-spreadsheet-id"
+sheet_name = "Sheet1"
+header_row = 1
+
+# Column mapping. Each key is a field scraped from a listing; each value is the
+# header of the worksheet column it should be written to. Leave a value as ""
+# (or delete the line) to skip exporting that field. Matching ignores case and
+# surrounding whitespace.
+[worksheet_mapping]
+provider = "portal"
+url = "link do ogłoszenia"
+address = "adres (do mapy)"
+price = "cena (zł)"
+area = "metraż (m²)"
+price_per_square_meter = "cena/m² (zł)"
+number_of_rooms = "pokoje"
+market_type = "rynek"
+year_of_construction = "rok budowy"
+listing_creation_date = "Data dodania"
