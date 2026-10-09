@@ -88,3 +88,15 @@ def test_build_sheet_row_skips_disabled_columns(listing):
     lookup = header_to_field({**DEFAULT_WORKSHEET_MAPPING, "price": ""})
 
     assert build_sheet_row(["cena (zł)"], listing, lookup) == [""]
+
+
+def test_build_sheet_row_writes_comment(listing, lookup):
+    listing = replace(listing, comment="Dodane przez deed-collector")
+
+    assert build_sheet_row(["Notatki"], listing, lookup) == [
+        "Dodane przez deed-collector"
+    ]
+
+
+def test_build_sheet_row_blanks_empty_comment(listing, lookup):
+    assert build_sheet_row(["Notatki"], listing, lookup) == [""]

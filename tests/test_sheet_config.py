@@ -131,6 +131,10 @@ def test_listing_creation_date_defaults_to_data_dodania():
     assert DEFAULT_WORKSHEET_MAPPING["listing_creation_date"] == "Data dodania"
 
 
+def test_comment_defaults_to_notatki():
+    assert DEFAULT_WORKSHEET_MAPPING["comment"] == "Notatki"
+
+
 def test_load_settings_defaults_when_missing(tmp_path):
     assert load_sheet_settings(tmp_path / "missing.toml") == SheetSettings()
 
@@ -149,12 +153,26 @@ def test_load_settings_from_file(tmp_path):
     )
 
 
+def test_load_settings_reads_and_strips_comment(tmp_path):
+    path = write_config(
+        tmp_path,
+        f'[{SETTINGS_SECTION}]\ncomment = "  Dodane przez deed-collector  "\n',
+    )
+
+    assert load_sheet_settings(path).comment == "Dodane przez deed-collector"
+
+
+def test_load_settings_comment_defaults_to_empty(tmp_path):
+    assert load_sheet_settings(tmp_path / "missing.toml").comment == ""
+
+
 @pytest.mark.parametrize(
     ("config_body", "exception"),
     [
         (f'[{SETTINGS_SECTION}]\ntypo = "x"', InvalidSheetSettingsError),
         (f"[{SETTINGS_SECTION}]\nsheet_name = 5", InvalidSheetSettingsError),
         (f"[{SETTINGS_SECTION}]\nheader_row = 0", InvalidSheetSettingsError),
+        (f"[{SETTINGS_SECTION}]\ncomment = 5", InvalidSheetSettingsError),
         (f'{SETTINGS_SECTION} = "nope"', ConfigFileError),
     ],
 )
@@ -167,15 +185,24 @@ def test_load_rejects_invalid_settings(tmp_path, config_body, exception):
 
 def test_overridden_by_prefers_cli_values():
     settings = SheetSettings(
-        spreadsheet_id="from-file", sheet_name="File", header_row=2
+        spreadsheet_id="from-file",
+        sheet_name="File",
+        header_row=2,
+        comment="from-file",
     )
 
     merged = settings.overridden_by(
-        spreadsheet_id="from-cli", sheet_name="CLI", header_row=7
+        spreadsheet_id="from-cli",
+        sheet_name="CLI",
+        header_row=7,
+        comment="from-cli",
     )
 
     assert merged == SheetSettings(
-        spreadsheet_id="from-cli", sheet_name="CLI", header_row=7
+        spreadsheet_id="from-cli",
+        sheet_name="CLI",
+        header_row=7,
+        comment="from-cli",
     )
     assert settings.overridden_by() == settings
 
@@ -183,7 +210,10 @@ def test_overridden_by_prefers_cli_values():
 def test_save_config_round_trips_settings(tmp_path):
     path = tmp_path / "config.toml"
     settings = SheetSettings(
-        spreadsheet_id="abc123", sheet_name="Tracker", header_row=3
+        spreadsheet_id="abc123",
+        sheet_name="Tracker",
+        header_row=3,
+        comment="Dodane przez deed-collector",
     )
 
     save_config(path, settings=settings, mapping=DEFAULT_WORKSHEET_MAPPING)

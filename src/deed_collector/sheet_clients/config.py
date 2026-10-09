@@ -7,10 +7,12 @@ optional), and the column mapping lives in a ``[worksheet_mapping]`` table::
     spreadsheet_id = "1Abc..."
     sheet_name = "Sheet1"
     header_row = 1
+    comment = "Added by deed-collector"
 
     [worksheet_mapping]
     price = "cena (zł)"
     area = "metraż (m²)"
+    comment = "Notatki"
 
 The ``spreadsheet_id`` setting has no built-in default: it must be supplied
 either here or as a CLI argument. Any CLI value takes precedence over the file.
@@ -40,10 +42,12 @@ DEFAULT_HEADER_ROW = 1
 SPREADSHEET_ID_KEY = "spreadsheet_id"
 SHEET_NAME_KEY = "sheet_name"
 HEADER_ROW_KEY = "header_row"
+COMMENT_KEY = "comment"
 SHEET_SETTING_KEYS: tuple[str, ...] = (
     SPREADSHEET_ID_KEY,
     SHEET_NAME_KEY,
     HEADER_ROW_KEY,
+    COMMENT_KEY,
 )
 
 # ``price_per_square_meter`` is a computed property on ``PropertyListing``
@@ -59,6 +63,7 @@ MAPPABLE_FIELDS: tuple[str, ...] = (
     "market_type",
     "year_of_construction",
     "listing_creation_date",
+    "comment",
 )
 
 # TODO if it goes public/popular I should probably switch to english as default :skull:
@@ -73,6 +78,7 @@ DEFAULT_WORKSHEET_MAPPING: dict[str, str] = {
     "market_type": "rynek",
     "year_of_construction": "rok budowy",
     "listing_creation_date": "Data dodania",
+    "comment": "Notatki",
 }
 
 
@@ -86,6 +92,7 @@ class SheetSettings:
     spreadsheet_id: str | None = None
     sheet_name: str = DEFAULT_SHEET_NAME
     header_row: int = DEFAULT_HEADER_ROW
+    comment: str = ""
 
     def overridden_by(
         self,
@@ -93,6 +100,7 @@ class SheetSettings:
         spreadsheet_id: str | None = None,
         sheet_name: str | None = None,
         header_row: int | None = None,
+        comment: str | None = None,
     ) -> SheetSettings:
         """Layer explicitly provided CLI values on top of these settings.
 
@@ -106,6 +114,7 @@ class SheetSettings:
             ),
             sheet_name=sheet_name if sheet_name is not None else self.sheet_name,
             header_row=header_row if header_row is not None else self.header_row,
+            comment=comment if comment is not None else self.comment,
         )
 
 
@@ -205,10 +214,20 @@ def validate_sheet_settings(settings: Mapping[str, object]) -> SheetSettings:
             f"'{HEADER_ROW_KEY}' in [{SETTINGS_SECTION}] must be an integer >= 1."
         )
 
+    comment = settings.get(COMMENT_KEY, "")
+    if not isinstance(comment, str):
+        raise InvalidSheetSettingsError(
+            f"'{COMMENT_KEY}' in [{SETTINGS_SECTION}] must be a string."
+        )
+    # An empty (or whitespace-only) comment means "write nothing", so normalizing
+    # it keeps the disabled state a single value.
+    comment = comment.strip()
+
     return SheetSettings(
         spreadsheet_id=spreadsheet_id,
         sheet_name=sheet_name,
         header_row=header_row,
+        comment=comment,
     )
 
 
@@ -260,11 +279,11 @@ def save_config(
         "# deed-collector configuration.",
         "#",
         "# [worksheet] sets the target spreadsheet tab. Every key is optional;",
-        "# CLI values (spreadsheet id argument, --sheet-name, --header-row)",
-        "# override the values written here.",
+        "# CLI values (spreadsheet id argument, --sheet-name, --header-row,",
+        "# --comment) override the values written here.",
         "#",
-        "# [worksheet_mapping] maps each scraped listing field to the header of",
-        '# the column it should be written to. Use "" to skip exporting a field.',
+        "# [worksheet_mapping] maps each exported field to the header of the",
+        '# column it should be written to. Use "" to skip exporting a field.',
         "",
     ]
 
@@ -317,6 +336,8 @@ def _render_settings(settings: SheetSettings) -> list[str]:
         lines.append(f"{SHEET_NAME_KEY} = {_toml_string(settings.sheet_name)}")
     if settings.header_row != DEFAULT_HEADER_ROW:
         lines.append(f"{HEADER_ROW_KEY} = {settings.header_row}")
+    if settings.comment:
+        lines.append(f"{COMMENT_KEY} = {_toml_string(settings.comment)}")
     return lines
 
 

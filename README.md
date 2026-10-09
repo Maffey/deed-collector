@@ -36,18 +36,24 @@ Instead of passing the target on the command line every time, put it in
 spreadsheet_id = "1AbC..."
 sheet_name = "Sheet1"
 header_row = 1
+comment = "Added by deed-collector"
 ```
 
-All three keys are optional. When a value is set in more than one place, the CLI
-wins, then the config file, then the defaults:
+All keys are optional. When a value is set in more than one place, the CLI wins,
+then the config file, then the defaults:
 
 | Config key       | CLI equivalent             | Default  |
 | ---------------- | -------------------------- | -------- |
 | `spreadsheet_id` | second positional argument | required |
 | `sheet_name`     | `--sheet-name`/`-w`        | `Sheet1` |
 | `header_row`     | `--header-row`/`-r`        | `1`      |
+| `comment`        | `--comment`                | none     |
 
 The listing `url` only ever comes from the CLI. It's not read from config.
+
+`comment` is static text (not scraped) that is written to its column on every
+appended row. Leave it empty to write nothing. Which column it lands in is set in
+the mapping below.
 
 ### Column mapping
 
@@ -76,6 +82,7 @@ provider = "portal"
 url = "link do ogłoszenia"
 price = "cena (zł)"
 area = "metraż (m²)"
+comment = "Notatki"
 # Skip a field by leaving it empty:
 year_of_construction = ""
 ```
@@ -109,6 +116,7 @@ before anything is written.
 | --------------------------- | ----- | -------------------------------------------------------------------------------------- |
 | `--sheet-name <name>`       | `-w`  | Worksheet tab to write to. Overrides `[worksheet].sheet_name`.                         |
 | `--header-row <n>`          | `-r`  | 1-based row holding the column headers (`n >= 1`). Overrides `[worksheet].header_row`. |
+| `--comment <text>`          |       | Static text added to every appended row. Overrides `[worksheet].comment`.             |
 | `--config-path <file>`      | `-f`  | TOML config file to read. Defaults to `config.toml` in the current directory.          |
 | `--credentials-path <file>` | `-c`  | Service account JSON key. Defaults to `credentials.json` in the project folder.        |
 | `--setup`                   |       | Re-run the interactive column-mapping wizard, then continue with the scrape.           |

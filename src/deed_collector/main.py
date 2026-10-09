@@ -1,16 +1,13 @@
-import random
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, NoReturn
 
 import typer
 from loguru import logger
 
-from deed_collector.real_estate.market import MarketType
-from deed_collector.real_estate.property_listing import PropertyListing
-from deed_collector.real_estate.providers import Provider
 from deed_collector.scraper import ScraperFactory
 from deed_collector.sheet_clients.config import (
     DEFAULT_CONFIG_FILE_NAME,
@@ -102,6 +99,16 @@ def main(
             dir_okay=False,
         ),
     ] = Path(DEFAULT_CONFIG_FILE_NAME),
+    comment: Annotated[
+        str | None,
+        typer.Option(
+            "--comment",
+            help=(
+                "Static text written to the comment column of every appended row. "
+                "Overrides [worksheet].comment; an empty value writes nothing."
+            ),
+        ),
+    ] = None,
     setup: Annotated[
         bool,
         typer.Option(
@@ -123,12 +130,14 @@ def main(
         spreadsheet_id=spreadsheet_id,
         sheet_name=sheet_name,
         header_row=header_row,
+        comment=comment,
     )
     if settings.spreadsheet_id is None:
         _exit_with_error(
             "No spreadsheet id provided. Pass it as an argument or set "
             f"'spreadsheet_id' in the [{SETTINGS_SECTION}] table of {config_path}."
         )
+    property_listing = replace(property_listing, comment=settings.comment)
 
     sheet_client = GoogleSheetClient(
         spreadsheet_id=settings.spreadsheet_id,

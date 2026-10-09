@@ -12,12 +12,16 @@
 #   * `spreadsheet_id` may instead be passed as the second positional argument
 #   * `sheet_name` may instead be passed with --sheet-name/-w
 #   * `header_row` may instead be passed with --header-row/-r
+#   * `comment` may instead be passed with --comment
 #
 # `spreadsheet_id` has no default, so it must be set here or on the CLI.
 [worksheet]
 spreadsheet_id = "your-spreadsheet-id"
 sheet_name = "Sheet1"
 header_row = 1
+# Static text written to the comment column of every appended row. Leave empty
+# (or delete the line) to write nothing. Set the target column below.
+comment = ""
 
 # Column mapping. Each key is a field scraped from a listing; each value is the
 # header of the worksheet column it should be written to. Leave a value as ""
@@ -34,3 +38,4 @@ number_of_rooms = "pokoje"
 market_type = "rynek"
 year_of_construction = "rok budowy"
 listing_creation_date = "Data dodania"
+comment = "Notatki"

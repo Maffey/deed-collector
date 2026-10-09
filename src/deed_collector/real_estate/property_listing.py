@@ -16,6 +16,7 @@ class PropertyListing:
     number_of_rooms: int
     year_of_construction: int | None
     market_type: MarketType
+    comment: str = ""
 
     @property
     def price_per_square_meter(self) -> float:
@@ -39,8 +40,8 @@ class PropertyListing:
             self.year_of_construction if self.year_of_construction is not None else "",
             self.market_type,
             self.listing_creation_date.isoformat(),
+            self.comment,
         ]
-
 
     @classmethod
     def _get_debug(cls):
