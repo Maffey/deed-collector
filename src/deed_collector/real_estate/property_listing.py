@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
@@ -39,3 +40,21 @@ class PropertyListing:
             self.market_type,
             self.listing_creation_date.isoformat(),
         ]
+
+
+    @classmethod
+    def _get_debug(cls):
+        price_base = 1_100_000.0
+        price_diff = 100_00
+        area_base = 100
+        area_diff = 5
+        return cls(
+            provider=Provider.OTODOM,
+            url="https://www.example.com/some-url",
+            address="ul. Nieistniejaca 27/3, Zbignieszów",
+            price=random.uniform(price_base - price_diff, price_base + price_diff),
+            area=random.randint(area_base - area_diff, area_base + area_diff),
+            number_of_rooms=5,
+            year_of_construction=2025,
+            market_type=MarketType.PRIMARY,
+        )

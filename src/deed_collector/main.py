@@ -11,6 +11,7 @@ from loguru import logger
 from deed_collector.real_estate.market import MarketType
 from deed_collector.real_estate.property_listing import PropertyListing
 from deed_collector.real_estate.providers import Provider
+from deed_collector.scraper import ScraperFactory
 from deed_collector.sheet_clients.config import (
     DEFAULT_CONFIG_FILE_NAME,
     SETTINGS_SECTION,
@@ -110,23 +111,8 @@ def main(
     ] = False,
 ) -> None:
 
-    # TODO restore later
-    # with ScraperFactory.create(url) as scraper:
-    #     property_listing = scraper.run(url)
-    price_base = 1_100_000.0
-    price_diff = 100_00
-    area_base = 100
-    area_diff = 5
-    property_listing = PropertyListing(
-        provider=Provider.OTODOM,
-        url="https://www.example.com/some-url",
-        address="ul. Nieistniejaca 27/3, Zbignieszów",
-        price=random.uniform(price_base - price_diff, price_base + price_diff),
-        area=random.randint(area_base - area_diff, area_base + area_diff),
-        number_of_rooms=5,
-        year_of_construction=2025,
-        market_type=MarketType.PRIMARY,
-    )
+    with ScraperFactory.create(url) as scraper:
+        property_listing = scraper.run(url)
     logger.debug(property_listing)
 
     # CLI values win, then the config file, then the built-in defaults.
