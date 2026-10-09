@@ -1,40 +1,35 @@
 # deed-collector
 
-Scrap real estate data and populate your tracker with it.
+Scrape a real estate listing and write it into a Google Sheets tracker.
 
-## Google Sheets API configuration
+## Google Sheets setup
 
-You need credentials allowing your script to write to the spreadsheet:
+You need a service account that's allowed to write to your spreadsheet.
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-
-2. Create a new project (or select an existing one).
-
-3. In the search bar, search for **Google Sheets API** and click **Enable**.
-
-4. Go to **IAM & Admin > Service Accounts > Create Service Account**:
-    - Give it a name (e.g., `sheets-updater`).
-    - Skip the optional role/permission steps and click **Done**.
-
-5. Click on the created service account and navigate to the **Keys** tab:
-    - Click **Add Key > Create new key > choose JSON**.
-    - Download the file and save it in your project folder as `credentials.json` (make sure to add this to your `.gitignore`!).
-
-6. **Important:** Copy the service account's email address (e.g., `sheets-updater@your-project.iam.gserviceaccount.com`).
-
-7. Open your Google Sheet in your browser, click **Share**, paste that service account email, and give it **Editor** access.
+1. Open the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a project (or pick an existing one).
+3. Search for **Google Sheets API** and click **Enable**.
+4. Go to **IAM & Admin > Service Accounts > Create Service Account**. Name it
+   something like `sheets-updater`, skip the optional roles, click **Done**.
+5. Open the account, go to **Keys > Add Key > Create new key > JSON**. Save the
+   downloaded file as `credentials.json` in the project folder, and put it in
+   your `.gitignore`.
+6. Copy the service account email
+   (`sheets-updater@your-project.iam.gserviceaccount.com`).
+7. Open your spreadsheet, click **Share**, paste that email in, give it
+   **Editor**.
 
 ## Configuration
 
-Configuration lives in a TOML file, by default `config.toml` in the current
-directory. Point the CLI at a different file with `--config-path/-f`. It has two
-tables: `[worksheet]` for the target spreadsheet and `[worksheet_mapping]` for
-how scraped fields map onto your columns.
+Config is a TOML file — `config.toml` by default. Point the CLI somewhere else
+with `--config-path/-f`. There are two tables: `[worksheet]` for the target
+spreadsheet, and `[worksheet_mapping]` for how scraped fields line up with your
+columns.
 
 ### Worksheet target
 
-The spreadsheet the listings are written to can be configured in the
-`[worksheet]` table instead of passing CLI arguments:
+Instead of passing the target on the command line every time, put it in
+`[worksheet]`:
 
 ```toml
 [worksheet]
@@ -43,32 +38,29 @@ sheet_name = "Sheet1"
 header_row = 1
 ```
 
-All three keys are optional. When a value is also given on the command line, the
-CLI takes precedence, then the config file, then the built-in defaults:
+All three keys are optional. When a value is set in more than one place, the CLI
+wins, then the config file, then the defaults:
 
-| Config key       | CLI equivalent              | Default  |
-| ---------------- | --------------------------- | -------- |
-| `spreadsheet_id` | second positional argument  | required |
-| `sheet_name`     | `--sheet-name`/`-w`         | `Sheet1` |
-| `header_row`     | `--header-row`/`-r`         | `1`      |
+| Config key       | CLI equivalent             | Default  |
+| ---------------- | -------------------------- | -------- |
+| `spreadsheet_id` | second positional argument | required |
+| `sheet_name`     | `--sheet-name`/`-w`        | `Sheet1` |
+| `header_row`     | `--header-row`/`-r`        | `1`      |
 
-The listing `url` is intentionally CLI-only and is never read from the config
-file.
+The listing `url` only ever comes from the CLI. It's not read from config.
 
 ### Column mapping
 
-The scraper exposes a fixed set of fields (provider, url, address, price, area,
-etc.). Your spreadsheet can name those columns whatever you like. The mapping
-between the two lives in the `[worksheet_mapping]` table of the same TOML file.
+The scraper produces a fixed set of fields (provider, url, address, price, area,
+etc.). Your sheet can name those columns whatever you want. `[worksheet_mapping]`
+connects the two.
 
-On first run, if `config.toml` is missing, and you are in an interactive
-terminal, the CLI reads your worksheet's header row and asks you which column
-each field belongs to, then writes the file for you. Re-run it at any time with
-`--setup`. In non-interactive sessions (CI, piped input) the built-in defaults
-are used instead.
+On a first run with no `config.toml`, in an interactive terminal, the CLI reads
+your sheet's header row and asks where each field goes, then writes the file for
+you. Run it again whenever with `--setup`. In non-interactive sessions (CI, piped
+input) the built-in defaults are used instead.
 
-To configure it by hand, copy the example, then edit the target spreadsheet and
-the headers:
+To set it up by hand:
 
 ```bash
 cp config.example.toml config.toml
@@ -88,29 +80,28 @@ area = "metraż (m²)"
 year_of_construction = ""
 ```
 
-Keys are the scraper's internal fields; values are your worksheet headers.
-Matching is case-insensitive and ignores surrounding whitespace.
+Keys are the scraper's fields; values are your sheet's headers. Matching ignores
+case and surrounding whitespace.
 
 ## Usage
 
-With `credentials.json` in the project folder and a `config.toml` describing your
-worksheet (see [Configuration](#configuration)), scrape a listing by passing its
-URL:
+With `credentials.json` and a `config.toml` describing your sheet, pass a
+listing URL:
 
 ```bash
 uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing"
 ```
 
-The listing is fetched, parsed, and appended as a new row to the configured
-spreadsheet. URL and `spreadsheet_id` are positional arguments; `spreadsheet_id`
-is optional when it is set in `config.toml`:
+The listing is fetched, parsed, and appended as a new row. `url` and
+`spreadsheet_id` are positional; the id is optional when it's already in
+`config.toml`:
 
 ```bash
 uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" "1AbC..."
 ```
 
-Currently only **Otodom** (`otodom.pl`) listings are supported. Passing a URL
-from an unrecognized host aborts with an error before anything is written.
+Only **Otodom** (`otodom.pl`) works right now. A URL from any other host fails
+before anything is written.
 
 ### Options
 
@@ -138,15 +129,11 @@ uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" \
   -f ./my-config.toml -c ./secrets/service-account.json
 ```
 
-Rebuild the column mapping after changing your worksheet headers:
+Rebuild the column mapping after changing your sheet's headers:
 
 ```bash
 uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" --setup
 ```
-
-On a first run without a `config.toml`, and when running in an interactive
-terminal, the CLI walks you through building one automatically before writing the
-row.
 
 ## Development
 
