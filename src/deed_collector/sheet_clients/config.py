@@ -58,6 +58,7 @@ MAPPABLE_FIELDS: tuple[str, ...] = (
     "number_of_rooms",
     "market_type",
     "year_of_construction",
+    "listing_creation_date",
 )
 
 # TODO if it goes public/popular I should probably switch to english as default :skull:
@@ -71,6 +72,7 @@ DEFAULT_WORKSHEET_MAPPING: dict[str, str] = {
     "number_of_rooms": "pokoje",
     "market_type": "rynek",
     "year_of_construction": "rok budowy",
+    "listing_creation_date": "Data dodania",
 }
 
 

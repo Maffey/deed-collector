@@ -70,6 +70,14 @@ def test_build_sheet_row_blanks_missing_optional_value(listing, lookup):
     assert build_sheet_row(["rok budowy"], listing, lookup) == [""]
 
 
+def test_build_sheet_row_formats_creation_date_as_iso(listing, lookup):
+    headers = ["Data dodania"]
+
+    assert build_sheet_row(headers, listing, lookup) == [
+        listing.listing_creation_date.isoformat()
+    ]
+
+
 def test_build_sheet_row_honours_custom_mapping(listing):
     lookup = header_to_field({"price": "Moja cena"})
 

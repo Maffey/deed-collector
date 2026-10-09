@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from datetime import date
 from pathlib import Path
 
 import gspread
@@ -90,8 +91,22 @@ def build_sheet_row(
             row.append("")
             continue
         value = getattr(listing, field_name)
-        row.append("" if value is None else value)
+        row.append(serialize_cell(value))
     return row
+
+
+def serialize_cell(value: object) -> str | float | int:
+    """Convert a listing field into a value the Sheets API accepts.
+
+    ``None`` becomes an empty cell, and ``date``/``datetime`` values are written
+    in ISO 8601 (``YYYY-MM-DD``) so the API can serialize them.
+    """
+    if value is None:
+        return ""
+    # ``datetime`` is a subclass of ``date``, so this covers both.
+    if isinstance(value, date):
+        return value.isoformat()
+    return value
 
 
 def first_empty_row_index(rows: Sequence[Sequence[str]], start_row: int = 1) -> int:

@@ -18,7 +18,7 @@ def _silence_output(monkeypatch) -> None:
 
 def test_run_setup_wizard_writes_selected_mapping(tmp_path, monkeypatch):
     # Answers follow MAPPABLE_FIELDS order; numbers index into the columns below.
-    answers = iter(["", "", "2", "1", "3", "", "4", "", "5"])
+    answers = iter(["", "", "2", "1", "3", "", "4", "", "5", ""])
     monkeypatch.setattr(
         sheet_setup.typer, "prompt", lambda message, **kwargs: next(answers)
     )

@@ -127,6 +127,10 @@ def test_default_mapping_covers_every_mappable_field():
     assert set(DEFAULT_WORKSHEET_MAPPING) == set(MAPPABLE_FIELDS)
 
 
+def test_listing_creation_date_defaults_to_data_dodania():
+    assert DEFAULT_WORKSHEET_MAPPING["listing_creation_date"] == "Data dodania"
+
+
 def test_load_settings_defaults_when_missing(tmp_path):
     assert load_sheet_settings(tmp_path / "missing.toml") == SheetSettings()
 
