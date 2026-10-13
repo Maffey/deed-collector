@@ -10,7 +10,7 @@ class PropertyListing:
     provider: Provider
     url: str
     address: str
-    price: float  # PLN
+    price: float  # currency units (e.g. PLN)
     area: float  # m²
     number_of_rooms: int
     year_of_construction: int | None

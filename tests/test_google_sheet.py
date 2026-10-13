@@ -32,7 +32,7 @@ def lookup() -> dict[str, str]:
 
 
 def test_build_sheet_row_follows_header_order(listing, lookup):
-    headers = ["cena (zł)", "portal", "link do ogłoszenia"]
+    headers = ["price", "portal", "listing url"]
 
     assert build_sheet_row(headers, listing, lookup) == [
         500000.0,
@@ -42,7 +42,7 @@ def test_build_sheet_row_follows_header_order(listing, lookup):
 
 
 def test_build_sheet_row_blanks_unknown_columns(listing, lookup):
-    headers = ["portal", "Notatki", "cena (zł)"]
+    headers = ["portal", "notes", "price"]
 
     assert build_sheet_row(headers, listing, lookup) == [
         Provider.OTODOM.value,
@@ -52,7 +52,7 @@ def test_build_sheet_row_blanks_unknown_columns(listing, lookup):
 
 
 def test_build_sheet_row_matches_headers_case_insensitively(listing, lookup):
-    headers = ["  PORTAL  ", "Cena (ZŁ)"]
+    headers = ["  PORTAL  ", "Price"]
 
     assert build_sheet_row(headers, listing, lookup) == [
         Provider.OTODOM.value,
@@ -61,23 +61,23 @@ def test_build_sheet_row_matches_headers_case_insensitively(listing, lookup):
 
 
 def test_build_sheet_row_supports_computed_property(listing, lookup):
-    assert build_sheet_row(["cena/m² (zł)"], listing, lookup) == [10000.0]
+    assert build_sheet_row(["price/m²"], listing, lookup) == [10000.0]
 
 
 def test_build_sheet_row_blanks_price_per_meter_when_area_missing(listing, lookup):
     listing = replace(listing, area=0.0)
 
-    assert build_sheet_row(["cena/m² (zł)"], listing, lookup) == [""]
+    assert build_sheet_row(["price/m²"], listing, lookup) == [""]
 
 
 def test_build_sheet_row_blanks_missing_optional_value(listing, lookup):
     listing = replace(listing, year_of_construction=None)
 
-    assert build_sheet_row(["rok budowy"], listing, lookup) == [""]
+    assert build_sheet_row(["year built"], listing, lookup) == [""]
 
 
 def test_build_sheet_row_formats_creation_date_as_iso(listing, lookup):
-    headers = ["Data dodania"]
+    headers = ["date added"]
 
     assert build_sheet_row(headers, listing, lookup) == [
         listing.collected_date.isoformat()
@@ -93,16 +93,16 @@ def test_build_sheet_row_honours_custom_mapping(listing):
 def test_build_sheet_row_skips_disabled_columns(listing):
     lookup = header_to_field({**DEFAULT_WORKSHEET_MAPPING, "price": ""})
 
-    assert build_sheet_row(["cena (zł)"], listing, lookup) == [""]
+    assert build_sheet_row(["price"], listing, lookup) == [""]
 
 
 def test_build_sheet_row_writes_comment(listing, lookup):
     listing = replace(listing, comment="Dodane przez deed-collector")
 
-    assert build_sheet_row(["Notatki"], listing, lookup) == [
+    assert build_sheet_row(["notes"], listing, lookup) == [
         "Dodane przez deed-collector"
     ]
 
 
 def test_build_sheet_row_blanks_empty_comment(listing, lookup):
-    assert build_sheet_row(["Notatki"], listing, lookup) == [""]
+    assert build_sheet_row(["notes"], listing, lookup) == [""]

@@ -114,8 +114,8 @@ def test_validate_rejects_unknown_field():
 def test_header_to_field_skips_disabled_columns():
     lookup = header_to_field({**DEFAULT_WORKSHEET_MAPPING, "year_of_construction": ""})
 
-    assert lookup[normalize_header("cena (zł)")] == "price"
-    assert normalize_header("rok budowy") not in lookup
+    assert lookup[normalize_header("price")] == "price"
+    assert normalize_header("year built") not in lookup
 
 
 def test_mappable_fields_exist_on_property_listing():
@@ -127,12 +127,12 @@ def test_default_mapping_covers_every_mappable_field():
     assert set(DEFAULT_WORKSHEET_MAPPING) == set(MAPPABLE_FIELDS)
 
 
-def test_collected_date_defaults_to_data_dodania():
-    assert DEFAULT_WORKSHEET_MAPPING["collected_date"] == "Data dodania"
+def test_collected_date_defaults_to_date_added():
+    assert DEFAULT_WORKSHEET_MAPPING["collected_date"] == "date added"
 
 
-def test_comment_defaults_to_notatki():
-    assert DEFAULT_WORKSHEET_MAPPING["comment"] == "Notatki"
+def test_comment_defaults_to_notes():
+    assert DEFAULT_WORKSHEET_MAPPING["comment"] == "notes"
 
 
 def test_load_settings_defaults_when_missing(tmp_path):

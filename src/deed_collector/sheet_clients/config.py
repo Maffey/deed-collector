@@ -10,9 +10,9 @@ optional), and the column mapping lives in a ``[worksheet_mapping]`` table::
     comment = "Added by deed-collector"
 
     [worksheet_mapping]
-    price = "cena (zł)"
-    area = "metraż (m²)"
-    comment = "Notatki"
+    price = "price"
+    area = "area (m²)"
+    comment = "notes"
 
 The ``spreadsheet_id`` setting has no built-in default: it must be supplied
 either here or as a CLI argument. Any CLI value takes precedence over the file.
@@ -66,19 +66,18 @@ MAPPABLE_FIELDS: tuple[str, ...] = (
     "comment",
 )
 
-# TODO if it goes public/popular I should probably switch to english as default :skull:
 DEFAULT_WORKSHEET_MAPPING: dict[str, str] = {
     "provider": "portal",
-    "url": "link do ogłoszenia",
-    "address": "adres (do mapy)",
-    "price": "cena (zł)",
-    "area": "metraż (m²)",
-    "price_per_square_meter": "cena/m² (zł)",
-    "number_of_rooms": "pokoje",
-    "market_type": "rynek",
-    "year_of_construction": "rok budowy",
-    "collected_date": "Data dodania",
-    "comment": "Notatki",
+    "url": "listing url",
+    "address": "address (for map)",
+    "price": "price",
+    "area": "area (m²)",
+    "price_per_square_meter": "price/m²",
+    "number_of_rooms": "rooms",
+    "market_type": "market",
+    "year_of_construction": "year built",
+    "collected_date": "date added",
+    "comment": "notes",
 }
 
 

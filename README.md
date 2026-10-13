@@ -79,10 +79,10 @@ sheet_name = "Sheet1"
 
 [worksheet_mapping]
 provider = "portal"
-url = "link do ogłoszenia"
-price = "cena (zł)"
-area = "metraż (m²)"
-comment = "Notatki"
+url = "listing url"
+price = "price"
+area = "area (m²)"
+comment = "notes"
 # Skip a field by leaving it empty:
 year_of_construction = ""
 ```
