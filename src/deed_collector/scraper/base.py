@@ -67,7 +67,7 @@ class BaseScraper(ABC):
             return self._to_property_listing(data, url)
         except ParsingError:
             raise
-        except (KeyError, IndexError, TypeError, ValueError) as exc:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise ParsingError(f"Could not parse listing at {url!r}") from exc
 
     def close(self) -> None:

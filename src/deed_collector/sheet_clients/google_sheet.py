@@ -37,6 +37,7 @@ class GoogleSheetClient(BaseSheetClient):
             if column_mapping is not None
             else dict(DEFAULT_WORKSHEET_MAPPING)
         )
+        # TODO inject client instead, for better testing
         self.client = gspread.service_account(filename=credentials_path)
         self.sheet = self.client.open_by_key(spreadsheet_id).worksheet(worksheet_name)
 

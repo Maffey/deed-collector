@@ -62,7 +62,7 @@ MAPPABLE_FIELDS: tuple[str, ...] = (
     "number_of_rooms",
     "market_type",
     "year_of_construction",
-    "listing_creation_date",
+    "collected_date",
     "comment",
 )
 
@@ -77,7 +77,7 @@ DEFAULT_WORKSHEET_MAPPING: dict[str, str] = {
     "number_of_rooms": "pokoje",
     "market_type": "rynek",
     "year_of_construction": "rok budowy",
-    "listing_creation_date": "Data dodania",
+    "collected_date": "Data dodania",
     "comment": "Notatki",
 }
 

@@ -92,6 +92,15 @@ def test_missing_ad_raises_parsing_error():
     client.close()
 
 
+def test_non_dict_ad_payload_raises_parsing_error():
+    # A truthy but non-dict payload used to escape as an AttributeError.
+    client, scraper = _scraper_for(build_otodom_html(["not", "a", "dict"]))
+
+    with pytest.raises(ParsingError):
+        scraper.run(URL)
+    client.close()
+
+
 def test_invalid_json_raises_parsing_error():
     html = '<html><body><script id="__NEXT_DATA__">not-json</script></body></html>'
     client, scraper = _scraper_for(html)

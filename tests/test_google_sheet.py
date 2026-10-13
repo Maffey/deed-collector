@@ -64,6 +64,12 @@ def test_build_sheet_row_supports_computed_property(listing, lookup):
     assert build_sheet_row(["cena/m² (zł)"], listing, lookup) == [10000.0]
 
 
+def test_build_sheet_row_blanks_price_per_meter_when_area_missing(listing, lookup):
+    listing = replace(listing, area=0.0)
+
+    assert build_sheet_row(["cena/m² (zł)"], listing, lookup) == [""]
+
+
 def test_build_sheet_row_blanks_missing_optional_value(listing, lookup):
     listing = replace(listing, year_of_construction=None)
 
@@ -74,7 +80,7 @@ def test_build_sheet_row_formats_creation_date_as_iso(listing, lookup):
     headers = ["Data dodania"]
 
     assert build_sheet_row(headers, listing, lookup) == [
-        listing.listing_creation_date.isoformat()
+        listing.collected_date.isoformat()
     ]
 
 

@@ -48,5 +48,9 @@ class InvalidSheetSettingsError(SheetConfigError):
     """Raised when the ``[worksheet]`` settings table is invalid."""
 
 
+class MissingSpreadsheetIdError(SheetConfigError):
+    """Raised when no spreadsheet id is set in the config file or on the CLI."""
+
+
 class SetupCancelledError(SheetClientError):
     """Raised when the interactive mapping setup is aborted by the user."""
