@@ -107,8 +107,8 @@ The listing is fetched, parsed, and appended as a new row. `url` and
 uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" "1AbC..."
 ```
 
-Only **Otodom** (`otodom.pl`) works right now. A URL from any other host fails
-before anything is written.
+**Otodom** (`otodom.pl`) and **Adresowo** (`adresowo.pl`) listings are
+supported. A URL from any other host fails before anything is written.
 
 ### Options
 
