@@ -17,7 +17,7 @@ def listing() -> PropertyListing:
     return PropertyListing(
         provider=Provider.OTODOM,
         url="https://example.com/1",
-        address="ul. Testowa 1",
+        address="ul. Zmyślona 1",
         price=500000.0,
         area=50.0,
         number_of_rooms=2,
