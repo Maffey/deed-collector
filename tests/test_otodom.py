@@ -21,8 +21,10 @@ AD = {
     },
     "attributes": {},
     "location": {
-        "address": {"street": {"name": "Testowa"}},
-        "reverseGeocoding": {"locations": [{"fullName": "Warszawa, Mokotów"}]},
+        "address": {"street": {"name": "Zmyślona"}},
+        "reverseGeocoding": {
+            "locations": [{"fullName": "Przykładów, Osiedle Fikcyjne"}]
+        },
     },
 }
 
@@ -58,7 +60,7 @@ def test_run_maps_listing_fields():
     assert isinstance(listing, PropertyListing)
     assert listing.provider is Provider.OTODOM
     assert listing.url == URL
-    assert listing.address == "Testowa, Warszawa, Mokotów"
+    assert listing.address == "Zmyślona, Przykładów, Osiedle Fikcyjne"
     assert listing.price == 750000.0
     assert listing.area == 50.0
     assert listing.number_of_rooms == 3

@@ -2,6 +2,21 @@
 
 Scrape a real estate listing and write it into a Google Sheets tracker.
 
+## What it does
+
+`deed-collector` is a command-line tool for anyone comparing flats or houses who keeps their shortlist in a spreadsheet.
+Give it the URL of a single listing from one of the supported providers and it fetches the page,
+extracting the facts that matter when comparing properties — address, price, area, price per m², etc. — and appends
+them as a new row to your Google Sheets worksheet, along with the date the listing was collected.
+
+Use it whenever you come across a property worth tracking: instead of bookmarking it or copying numbers by hand,
+run one command and the listing lands in the same sheet as everything else, where you can filter,
+sort and watch prices over time.
+
+To get going, set up a Google service account, point the tool at your sheet with a small TOML config
+that maps scraped fields to your column headers,
+then run `deed-collector <listing-url>` for each property you want to keep.
+
 ## Google Sheets setup
 
 You need a service account that's allowed to write to your spreadsheet.
@@ -107,8 +122,8 @@ The listing is fetched, parsed, and appended as a new row. `url` and
 uv run deed-collector "https://www.otodom.pl/pl/oferta/some-listing" "1AbC..."
 ```
 
-Only **Otodom** (`otodom.pl`) works right now. A URL from any other host fails
-before anything is written.
+**Otodom** (`otodom.pl`) and **Adresowo** (`adresowo.pl`) listings are
+supported. A URL from any other host fails before anything is written.
 
 ### Options
 

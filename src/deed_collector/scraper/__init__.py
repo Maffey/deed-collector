@@ -1,5 +1,8 @@
 """Scraper layer: provider-specific listing scrapers and their factory."""
 
+# Importing a concrete scraper registers it with the factory, so import them
+# here to populate the registry whenever the package is imported.
+from deed_collector.scraper.adresowo import AdresowoScraper
 from deed_collector.scraper.base import BaseScraper
 from deed_collector.scraper.exceptions import (
     ParsingError,
@@ -7,12 +10,10 @@ from deed_collector.scraper.exceptions import (
     UnsupportedProviderError,
 )
 from deed_collector.scraper.factory import ScraperFactory
-
-# Importing concrete scrapers triggers their self-registration with the
-# factory. Keep these imports after the factory to avoid circular imports.
 from deed_collector.scraper.otodom import OtodomScraper
 
 __all__ = [
+    "AdresowoScraper",
     "BaseScraper",
     "OtodomScraper",
     "ParsingError",
