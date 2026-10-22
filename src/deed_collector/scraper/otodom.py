@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from selectolax.parser import HTMLParser
+from selectolax.lexbor import LexborHTMLParser
 
 from deed_collector.real_estate.property_listing import (
     MarketType,
@@ -25,7 +25,7 @@ class OtodomScraper(BaseScraper):
 
     def _parse_raw(self, raw_payload: str) -> dict[str, Any]:
         """Extract the ``ad`` dictionary from the Next.js hydration script."""
-        tree = HTMLParser(raw_payload)
+        tree = LexborHTMLParser(raw_payload)
         next_data_node = tree.css_first("script#__NEXT_DATA__")
 
         if next_data_node is None:
